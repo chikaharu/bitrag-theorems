@@ -1,0 +1,24 @@
+[package]
+name        = "bitrag-theorems"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+repository  = { workspace = true }
+authors     = { workspace = true }
+rust-version= { workspace = true }
+description = "Theorem B (F2 retrieval scaling law), Lemma T5 (tropical rank upper bound), Corollary C (LLM-less Rust repair) and the four added experiments of paper.md."
+readme      = "../../README.md"
+keywords    = ["retrieval", "f2", "tropical", "scaling-law"]
+categories  = ["science", "algorithms"]
+
+[lib]
+name = "bitrag_theorems"
+path = "src/lib.rs"
+
+[[bench]]
+name    = "scaling_bench"
+path    = "benches/scaling_bench.rs"
+harness = false
+
+[features]
+default = []

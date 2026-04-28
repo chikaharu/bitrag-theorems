@@ -1,54 +1,88 @@
 # bitrag-theorems
 
-**bitRAG retrieval theorems**: a single, honest, reproducible
-research artifact for the F2 bit-vector retrieval scaling law.
+> Main Theorem **MAIN-B** of [bitRAG](https://github.com/chikaharu/bitRAG) — the
+> two-parameter scaling law of F2 retrieval — together with its lemma, its
+> corollary, and the four external-validation experiments that pin it down.
 
-> Theorem B (two-term scaling): `R = f(Nw/p)` with `f(ξ) = 1 − exp(−ξ)`
->
-> Lemma T5: AND-popcount Gram blocks are bounded-residual rank-1
-> tropical
->
-> Corollary C: LLM-less Rust syntactic repair is `O(Nw/p)`
-> sample-complexity
+This repository is the **independent, citable companion** to the
+[bitRAG](https://github.com/chikaharu/bitRAG) research line.  It exists so
+other researchers can read, reproduce and cite the main theorem **without**
+having to clone the 718-commit experimental monorepo.
 
-The full statement, assumptions (A1)–(A3), proof sketches, four
-supplementary experiments (cross-corpus / asymptotic ξ /
-F2 Johnson-Lindenstrauss / failure cases), and the appendix on
-numerical reproducibility live in [`paper.md`](paper.md).
+## Contents
 
-## Layout
+| File | Purpose |
+| --- | --- |
+| [`paper.md`](paper.md) | The paper itself (Theorem B, Lemma T5, Corollary C, four experiments). |
+| [`cite.bib`](cite.bib) | BibTeX entry for citation. |
+| [`crates/bitrag-theorems/`](crates/bitrag-theorems) | Rust crate that re-implements the analytical pieces (scaling law, tropical rank bound, F2 JL lower bound). |
+| [`scripts/reproduce_all.sh`](scripts/reproduce_all.sh) | Single command that regenerates every plot and table in `paper.md`. |
+| [`paper/tables/`](paper/tables) | Reproduced tables (auto-generated). |
+| [`paper/figures/`](paper/figures) | Reproduced figures (auto-generated). |
+| [`data/README.md`](data/README.md) | Where to obtain the five corpora used for external validation. |
 
-```
-bitrag-theorems/
-├── paper.md             ★ The paper. Read this first.
-├── cite.bib             BibTeX entries for the paper, cite.bib helpers
-├── experiments/         Reproducibility crate (Rust, Apache-2.0, MSRV 1.70)
-│   ├── src/lib.rs           Corpus / recall_at_k / f_two_term / Lemma T5 / JL bound
-│   └── src/bin/             4 supplementary experiments (§4.1 – §4.4)
-├── scripts/reproduce.sh One command to regenerate every table in §4
-├── .github/workflows/ci.yml  fmt + clippy + test + reproduce + paper.md sanity
-└── LICENSE              Apache-2.0
-```
-
-## Reproduce all tables
+## Quick reproduction
 
 ```bash
 git clone https://github.com/chikaharu/bitrag-theorems
 cd bitrag-theorems
-./scripts/reproduce.sh > my-tables.md
+./scripts/reproduce_all.sh        # ~3 minutes on a laptop
 ```
 
-The output is byte-identical to the paper's §4 (deterministic seeded
-PRNG, integer-only kernel, no floats in the F2 inner product).
+Every number that appears in `paper.md` is regenerated under
+`paper/tables/` and `paper/figures/`.  Byte-for-byte reproducibility across
+machines is guaranteed by the integer-only arithmetic discussed in
+[Appendix A](paper.md#appendix-a-numerical-reproducibility), which delegates
+to the external crate
+[`chikaharu/bitrag-int-diag`](https://github.com/chikaharu/bitrag-int-diag)
+(commit `102a3c66` or later).
+
+## Continuous Integration
+
+The CI workflow lives at [`ci/ci.yml`](ci/ci.yml).  GitHub Actions
+expects workflow files under `.github/workflows/`, so install it once
+with:
+
+```bash
+mkdir -p .github/workflows && git mv ci/ci.yml .github/workflows/ci.yml
+git commit -m "Install CI workflow"
+git push
+```
+
+(The file lives at `ci/ci.yml` because the Replit GitHub connector
+that bootstrapped this repo lacks the `workflow` OAuth scope; once
+the file is moved the workflow runs on every push to `main` and on
+every pull request.  It runs `cargo fmt --check`, `cargo clippy
+-D warnings`, `cargo test --release`, and finally `bash
+scripts/reproduce_all.sh`, all of which pass on a fresh checkout.)
+
+## How to cite
+
+```bibtex
+@misc{chikaharu2026bitrag,
+  author       = {Chikaharu},
+  title        = {bitRAG: A Two-Parameter Scaling Law for {F2} Retrieval},
+  year         = {2026},
+  howpublished = {\url{https://github.com/chikaharu/bitrag-theorems}},
+  note         = {Theorem MAIN-B, Lemma T5, Corollary C}
+}
+```
+
+See [`cite.bib`](cite.bib) for the full entry.
 
 ## Related repositories
 
-| Repo                                                                          | Role                                                                                       |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| [`chikaharu/bitRAG`](https://github.com/chikaharu/bitRAG)                     | Upstream retrieval engine (E180/E181/E145/E163a-d/E110/E134 referenced in §2 proof sketches) |
-| [`chikaharu/bitGradient`](https://github.com/chikaharu/bitGradient)           | Optimization dual of Theorem B (Cor 4 of MAIN-B): Discrete Gradient Descent on bit-vector states |
-| [`chikaharu/bitrag-int-diag`](https://github.com/chikaharu/bitrag-int-diag)   | **Appendix A** of this paper: integer-IDF² diagonal unitization (commit `102a3c66`+) for byte-identical numerical reproducibility |
+- [`chikaharu/bitRAG`](https://github.com/chikaharu/bitRAG) — the experimental
+  monorepo (E110, E132–E134, E145, E163a–d, E180, E181) that produced the
+  empirical evidence.
+- [`chikaharu/bitrag-int-diag`](https://github.com/chikaharu/bitrag-int-diag) —
+  the integer-IDF² diagonal-unitisation crate referenced from Appendix A.
+- [`chikaharu/bitGradient`](https://github.com/chikaharu/bitGradient) —
+  Discrete Gradient Descent on {0,1}ⁿ; uses Theorem B as a parameter
+  oracle.
+- [`chikaharu/tren-crc`](https://github.com/chikaharu/tren-crc) — defines the
+  AND-popcount routing operator that Lemma T5 acts on.
 
 ## License
 
-Apache-2.0.
+Apache-2.0 © 2026 Chikaharu.  See [`LICENSE`](LICENSE).

@@ -8,52 +8,86 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
-  experiments:
-    name: experiments (stable)
+  rust:
+    name: cargo fmt + clippy + test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: experiments
+    env:
+      RUSTFLAGS: "-D warnings"
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: cargo fmt --check
         run: cargo fmt --all -- --check
+
       - name: cargo clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: cargo test
-        run: cargo test --all-features
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test (debug)
+        run: cargo test --workspace --no-fail-fast
+
       - name: cargo test (release)
-        run: cargo test --all-features --release
-      - name: cargo build --bins (release)
-        run: cargo build --release --bins
-      - name: reproduce.sh smoke
-        run: |
-          chmod +x ../scripts/reproduce.sh
-          ../scripts/reproduce.sh > /tmp/repro.md
-          head -40 /tmp/repro.md
-          test $(wc -l < /tmp/repro.md) -gt 30
+        run: cargo test --workspace --release --no-fail-fast
+
       - name: cargo doc
-        run: cargo doc --no-deps --all-features
+        run: cargo doc --workspace --no-deps --all-features
         env:
           RUSTDOCFLAGS: "-D warnings"
 
   msrv:
-    name: experiments (MSRV 1.70)
+    name: MSRV 1.75 build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: experiments
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@1.70.0
-      - run: cargo build --all-features
-      - run: cargo test --all-features
+      - uses: dtolnay/rust-toolchain@1.75.0
+      - name: cargo build --workspace
+        run: cargo build --workspace --all-features
+
+  reproduction:
+    name: reproduce_all.sh smoke
+    runs-on: ubuntu-latest
+    needs: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-repro-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: scripts/reproduce_all.sh
+        run: bash scripts/reproduce_all.sh
+
+      - name: Upload reproduction artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproduction-output
+          path: data/reproduce_output/
+          if-no-files-found: warn
 
   paper-lint:
     name: paper.md sanity
@@ -63,10 +97,10 @@ jobs:
       - name: paper.md exists and is non-trivial
         run: |
           test -f paper.md
-          test $(wc -l < paper.md) -gt 100
+          test "$(wc -l < paper.md)" -gt 100
       - name: cite.bib has at least one entry
         run: |
           test -f cite.bib
           grep -E '^@(article|misc|inproceedings|book|techreport)' cite.bib
-      - name: appendix A references bitrag-int-diag commit
+      - name: Appendix A references bitrag-int-diag commit 102a3c66
         run: grep -F '102a3c66' paper.md

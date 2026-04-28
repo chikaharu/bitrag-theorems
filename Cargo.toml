@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["crates/bitrag-theorems"]
+
+[workspace.package]
+version       = "0.1.0"
+edition       = "2021"
+license       = "Apache-2.0"
+repository    = "https://github.com/chikaharu/bitrag-theorems"
+authors       = ["Chikaharu <chikaharu@users.noreply.github.com>"]
+rust-version  = "1.75"
+
+[profile.release]
+opt-level     = 3
+lto           = "thin"
+codegen-units = 1

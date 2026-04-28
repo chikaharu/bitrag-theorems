@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  experiments:
+    name: experiments (stable)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiments
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+      - name: cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: cargo test
+        run: cargo test --all-features
+      - name: cargo test (release)
+        run: cargo test --all-features --release
+      - name: cargo build --bins (release)
+        run: cargo build --release --bins
+      - name: reproduce.sh smoke
+        run: |
+          chmod +x ../scripts/reproduce.sh
+          ../scripts/reproduce.sh > /tmp/repro.md
+          head -40 /tmp/repro.md
+          test $(wc -l < /tmp/repro.md) -gt 30
+      - name: cargo doc
+        run: cargo doc --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+
+  msrv:
+    name: experiments (MSRV 1.70)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiments
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.70.0
+      - run: cargo build --all-features
+      - run: cargo test --all-features
+
+  paper-lint:
+    name: paper.md sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: paper.md exists and is non-trivial
+        run: |
+          test -f paper.md
+          test $(wc -l < paper.md) -gt 100
+      - name: cite.bib has at least one entry
+        run: |
+          test -f cite.bib
+          grep -E '^@(article|misc|inproceedings|book|techreport)' cite.bib
+      - name: appendix A references bitrag-int-diag commit
+        run: grep -F '102a3c66' paper.md
